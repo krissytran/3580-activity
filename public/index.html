@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minesweeper - Intentionally Insecure</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .security-warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+        
+        .auth-section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        input[type="text"],
+        input[type="password"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #764ba2;
+        }
+        
+        button.secondary {
+            background: #6c757d;
+            margin-left: 10px;
+        }
+        
+        button.secondary:hover {
+            background: #5a6268;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .button-group button {
+            flex: 1;
+        }
+        
+        .game-section {
+            display: none;
+        }
+        
+        .game-section.active {
+            display: block;
+        }
+        
+        .user-info {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .game-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .game-board {
+            display: inline-grid;
+            gap: 2px;
+            padding: 10px;
+            background: #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .cell {
+            width: 30px;
+            height: 30px;
+            background: #c0c0c0;
+            border: 2px outset #dfdfdf;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 12px;
+            user-select: none;
+            transition: all 0.1s;
+        }
+        
+        .cell:hover {
+            border-style: inset;
+        }
+        
+        .cell.revealed {
+            border-style: inset;
+            background: #c0c0c0;
+        }
+        
+        .cell.mine {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .cell.empty {
+            background: #e0e0e0;
+            color: #666;
+        }
+        
+        .game-status {
+            text-align: center;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        
+        .game-status.won {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .game-status.lost {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .admin-section {
+            background: #ffebee;
+            border: 1px solid #ef5350;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        .message {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💣 Minesweeper - Insecure Edition</h1>
+        
+        <div class="security-warning">
+            ⚠️ WARNING: This application is intentionally built with security vulnerabilities for educational purposes. 
+            DO NOT use any of the patterns shown here in production code!
+        </div>
+        
+        <div class="auth-section">
+            <h2 style="margin-bottom: 15px;">Authentication</h2>
+            
+            <div id="loginForm">
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" id="loginUsername" placeholder="Enter username">
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="loginPassword" placeholder="Enter password">
+                </div>
+                <button onclick="login()">Login</button>
+                <button class="secondary" onclick="toggleRegister()">Register New User</button>
+                <div id="message" class="message"></div>
+            </div>
+            
+            <div id="registerForm" style="display: none;">
+                <div class="form-group">
+                    <label>New Username:</label>
+                    <input type="text" id="registerUsername" placeholder="Choose username">
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="registerPassword" placeholder="Choose password">
+                </div>
+                <button onclick="register()">Create Account</button>
+                <button class="secondary" onclick="toggleRegister()">Back to Login</button>
+                <div id="registerMessage" class="message"></div>
+            </div>
+        </div>
+        
+        <div id="gameSection" class="game-section">
+            <div class="user-info" id="userInfo"></div>
+            
+            <h2 style="margin-bottom: 15px;">New Game</h2>
+            <div class="game-controls">
+                <div class="form-group">
+                    <label>Width:</label>
+                    <input type="number" id="boardWidth" value="10" min="5" max="20">
+                </div>
+                <div class="form-group">
+                    <label>Height:</label>
+                    <input type="number" id="boardHeight" value="10" min="5" max="20">
+                </div>
+                <div class="form-group">
+                    <label>Mines:</label>
+                    <input type="number" id="boardMines" value="10" min="1" max="100">
+                </div>
+            </div>
+            <button onclick="newGame()" style="width: 100%;">Start New Game</button>
+            
+            <div id="gameBoard" class="game-board" style="display: none;"></div>
+            <div id="gameStatus" class="game-status" style="display: none;"></div>
+            
+            <button class="secondary" onclick="logout()" style="margin-top: 20px; width: 100%;">Logout</button>
+            
+            <div class="admin-section">
+                <h3>Admin Panel (For Security Testing)</h3>
+                <div class="form-group">
+                    <label>Admin Password:</label>
+                    <input type="password" id="adminPassword" placeholder="Enter admin password">
+                </div>
+                <div class="button-group">
+                    <button onclick="viewScores()">View All Scores</button>
+                    <button onclick="resetDatabase()">Reset Database</button>
+                </div>
+                <div id="adminMessage" class="message"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentUserId = null;
+        let currentUsername = null;
+        let currentGameId = null;
+        let currentBoard = null;
+        let gameActive = false;
+        
+        // VULNERABILITY 31: Storing sensitive data in localStorage
+        function login() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!username || !password) {
+                showMessage('message', 'Please fill in all fields', 'error');
+                return;
+            }
+            
+            // VULNERABILITY 32: Sending credentials over potentially unencrypted connection
+            fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    currentUserId = data.userId;
+                    currentUsername = data.username;
+                    
+                    // VULNERABILITY 33: Storing credentials in localStorage
+                    localStorage.setItem('userId', data.userId);
+                    localStorage.setItem('username', data.username);
+                    localStorage.setItem('password', data.password); // NEVER do this!
+                    
+                    document.getElementById('loginForm').style.display = 'none';
+                    document.getElementById('gameSection').classList.add('active');
+                    document.getElementById('userInfo').textContent = `Logged in as: ${data.username} (ID: ${data.userId})`;
+                } else {
+                    showMessage('message', data.error || 'Login failed', 'error');
+                }
+            })
+            .catch(err => showMessage('message', err.message, 'error'));
+        }
+        
+        function register() {
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+            
+            if (!username || !password) {
+                showMessage('registerMessage', 'Please fill in all fields', 'error');
+                return;
+            }
+            
+            // VULNERABILITY 34: No client-side validation
+            fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('registerMessage', 'Account created! Please login.', 'success');
+                    setTimeout(toggleRegister, 1500);
+                } else {
+                    showMessage('registerMessage', data.error || 'Registration failed', 'error');
+                }
+            })
+            .catch(err => showMessage('registerMessage', err.message, 'error'));
+        }
+        
+        function toggleRegister() {
+            document.getElementById('loginForm').style.display = 
+                document.getElementById('loginForm').style.display === 'none' ? 'block' : 'none';
+            document.getElementById('registerForm').style.display = 
+                document.getElementById('registerForm').style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function logout() {
+            currentUserId = null;
+            currentUsername = null;
+            currentGameId = null;
+            
+            // VULNERABILITY 35: Not clearing localStorage
+            // localStorage.clear(); // This should be done but isn't!
+            
+            document.getElementById('gameSection').classList.remove('active');
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+        }
+        
+        function newGame() {
+            const width = parseInt(document.getElementById('boardWidth').value);
+            const height = parseInt(document.getElementById('boardHeight').value);
+            const mines = parseInt(document.getElementById('boardMines').value);
+            
+            // VULNERABILITY 36: No input validation
+            fetch('/api/game/new', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ width, height, mines, userId: currentUserId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                currentGameId = data.gameId;
+                // VULNERABILITY 37: Storing game state with mine locations in client
+                currentBoard = data.board;
+                gameActive = true;
+                renderBoard(width, height);
+                document.getElementById('gameStatus').style.display = 'none';
+            })
+            .catch(err => alert('Error: ' + err.message));
+        }
+        
+        function renderBoard(width, height) {
+            const boardDiv = document.getElementById('gameBoard');
+            boardDiv.style.gridTemplateColumns = `repeat(${width}, 30px)`;
+            boardDiv.innerHTML = '';
+            boardDiv.style.display = 'inline-grid';
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.id = `cell-${x}-${y}`;
+                    // VULNERABILITY 38: Using data attributes that can be inspected in DevTools
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    cell.textContent = '?';
+                    cell.onclick = () => clickCell(x, y);
+                    boardDiv.appendChild(cell);
+                }
+            }
+        }
+        
+        function clickCell(x, y) {
+            if (!gameActive) return;
+            
+            fetch(`/api/game/${currentGameId}/click`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ x, y })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.gameOver) {
+                    // VULNERABILITY 39: Revealing the entire board on game over
+                    revealAllCells(data.revealed);
+                    showGameStatus('💣 Game Over! You Hit a Mine!', 'lost');
+                    gameActive = false;
+                } else {
+                    // VULNERABILITY 40: Updating board state in real-time
+                    updateCell(x, y, data.revealed[y][x]);
+                }
+            })
+            .catch(err => alert('Error: ' + err.message));
+        }
+        
+        function updateCell(x, y, value) {
+            const cell = document.getElementById(`cell-${x}-${y}`);
+            if (value === 0) {
+                cell.textContent = '';
+                cell.classList.add('empty');
+            } else {
+                cell.textContent = value;
+            }
+            cell.classList.add('revealed');
+        }
+        
+        function revealAllCells(board) {
+            for (let y = 0; y < board.length; y++) {
+                for (let x = 0; x < board[y].length; x++) {
+                    const cell = document.getElementById(`cell-${x}-${y}`);
+                    if (board[y][x] === 'M') {
+                        cell.textContent = '💣';
+                        cell.classList.add('mine');
+                    } else {
+                        cell.textContent = board[y][x];
+                    }
+                    cell.classList.add('revealed');
+                }
+            }
+        }
+        
+        function showGameStatus(message, className) {
+            const status = document.getElementById('gameStatus');
+            status.textContent = message;
+            status.className = 'game-status ' + className;
+            status.style.display = 'block';
+        }
+        
+        function showMessage(elementId, message, className) {
+            const msgEl = document.getElementById(elementId);
+            msgEl.textContent = message;
+            msgEl.className = 'message ' + className;
+        }
+        
+        function viewScores() {
+            const password = document.getElementById('adminPassword').value;
+            
+            // VULNERABILITY 41: Sending admin password in plain fetch request
+            fetch('/api/admin/scores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    showMessage('adminMessage', data.error, 'error');
+                } else {
+                    // VULNERABILITY 42: Displaying sensitive data in alert
+                    alert('Scores:\n' + JSON.stringify(data, null, 2));
+                }
+            })
+            .catch(err => showMessage('adminMessage', err.message, 'error'));
+        }
+        
+        function resetDatabase() {
+            // VULNERABILITY 43: No confirmation or authorization check
+            if (confirm('Are you sure? This will delete all games.')) {
+                fetch('/api/admin/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    showMessage('adminMessage', 'Database reset successful', 'success');
+                })
+                .catch(err => showMessage('adminMessage', err.message, 'error'));
+            }
+        }
+        
+        // VULNERABILITY 44: Restoring session from localStorage on page load
+        window.addEventListener('load', () => {
+            const userId = localStorage.getItem('userId');
+            const username = localStorage.getItem('username');
+            
+            if (userId && username) {
+                currentUserId = userId;
+                currentUsername = username;
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('gameSection').classList.add('active');
+                document.getElementById('userInfo').textContent = `Logged in as: ${username}`;
+            }
+        });
+    </script>
+</body>
+</html>
